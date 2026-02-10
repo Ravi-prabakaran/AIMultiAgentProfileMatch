@@ -37,18 +37,18 @@ env/
 *.swo
 *~
 
-# Output files (optional - remove if you want to track outputs)
-outputs/*.txt
-outputs/*.pdf
-outputs/*.xlsx
+# # Output files (optional - remove if you want to track outputs)
+# outputs/*.txt
+# outputs/*.pdf
+# outputs/*.xlsx
 
-# Profiles (optional - remove if you want to track sample profiles)
-profiles/*
-!profiles/.gitkeep
+# # Profiles (optional - remove if you want to track sample profiles)
+# profiles/*
+# !profiles/.gitkeep
 
-# Job Descriptions (optional - remove if you want to track sample JDs)
-job_descriptions/*
-!job_descriptions/.gitkeep
+# # Job Descriptions (optional - remove if you want to track sample JDs)
+# job_descriptions/*
+# !job_descriptions/.gitkeep
 
 # OS
 .DS_Store
