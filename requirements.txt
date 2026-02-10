@@ -1,0 +1,15 @@
+# CrewAI and core dependencies
+crewai>=0.28.0
+crewai-tools>=0.1.0
+
+# LLM and AI - Choose one or both
+openai>=1.0.0
+anthropic>=0.18.0
+
+# LangChain
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-anthropic>=0.1.0
+
+# Environment and configuration
+python-dotenv>=1.0.0
