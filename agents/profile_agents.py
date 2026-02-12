@@ -3,14 +3,16 @@ Agent definitions for the ProfileMatch multi-agent system.
 """
 
 from crewai import Agent
-from crewai_tools import DirectoryReadTool, FileReadTool, PDFSearchTool, DOCXSearchTool
+from crewai_tools import DirectoryReadTool
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from typing import Optional, Union
 
+from tools import PDFReaderTool, DOCXReaderTool, PPTXReaderTool
+
 
 class ProfileMatchAgents:
-    """Factory class for creating specialized agents."""
+    """Agents class for creating specialized agents."""
     
     def __init__(
         self, 
@@ -21,12 +23,14 @@ class ProfileMatchAgents:
         """Initialize the agents with optional LLM configuration."""
         self.llm = llm or ChatOpenAI(model="gpt-4-turbo-preview", temperature=0.7)
         
-        # Initialize CrewAI tools
+        # Initialize CrewAI tools for different file types
         self.profile_directory_tool = DirectoryReadTool(directory=profiles_dir)
         self.jd_directory_tool = DirectoryReadTool(directory=jd_dir)
-        self.file_read_tool = FileReadTool()
-        self.pdf_tool = PDFSearchTool()
-        self.docx_tool = DOCXSearchTool()
+        
+        # Custom document reading tools
+        self.pdf_reader = PDFReaderTool()
+        self.docx_reader = DOCXReaderTool()
+        self.pptx_reader = PPTXReaderTool()
     
     def profile_parser_agent(self) -> Agent:
         """
@@ -41,10 +45,12 @@ class ProfileMatchAgents:
             backstory="You are an expert in document analysis and information extraction with years "
                      "of experience in parsing resumes and profiles. You have a keen eye for detail "
                      "and can accurately identify and extract relevant information from unstructured "
-                     "text. You understand various resume formats and can adapt to different styles.",
+                     "text. You understand various resume formats and can adapt to different styles. "
+                     "You use the Read PDF Document tool for PDFs, Read Word Document tool for DOCX files, "
+                     "and Read PowerPoint Presentation tool for PPTX files.",
             verbose=True,
             allow_delegation=False,
-            tools=[self.profile_directory_tool, self.file_read_tool, self.pdf_tool, self.docx_tool],
+            tools=[self.profile_directory_tool, self.pdf_reader, self.docx_reader, self.pptx_reader],
             llm=self.llm
         )
     
@@ -55,16 +61,25 @@ class ProfileMatchAgents:
         """
         return Agent(
             role="Job Description Analyst",
-            goal="Parse and understand job descriptions for different teams, extracting team names, "
-                 "required skills, experience levels, qualifications, and key responsibilities. "
-                 "Organize multiple JDs when they are in a single document.",
+            goal="Parse and understand job descriptions for different teams. "
+                 "CRITICAL RULE: You MUST extract the team name from the JOB DESCRIPTION FILENAME (in the job_descriptions directory). "
+                 "DO NOT use candidate filenames. DO NOT use example names. DO NOT invent team names. "
+                 "Process: (1) List files in job_descriptions directory, (2) For EACH JD file, take its filename, "
+                 "(3) Remove the extension (.pdf, .docx, .pptx), (4) That is the team name. "
+                 "Then extract job requirements from that JD document's content.",
             backstory="You are a seasoned HR analyst and recruiter with deep expertise in understanding "
                      "job requirements. You excel at identifying the key skills and qualifications needed "
-                     "for different roles. You can parse complex JD documents that contain multiple team "
-                     "requirements and structure them clearly.",
+                     "for different roles. CRITICAL: You work specifically with JOB DESCRIPTION files in the "
+                     "'job_descriptions' directory. You ALWAYS determine each team name from the JD filename itself - "
+                     "simply remove the file extension. Examples: "
+                     "If you read 'job_descriptions/DataScience.pdf' → team is 'DataScience'. "
+                     "If you read 'job_descriptions/Backend_Engineering.docx' → team is 'Backend_Engineering'. "
+                     "If you read 'job_descriptions/DevOps.pptx' → team is 'DevOps'. "
+                     "You NEVER use candidate profile filenames for team names. You NEVER use placeholder names. "
+                     "You use Read PDF Document for PDFs, Read Word Document for DOCX, Read PowerPoint Presentation for PPTX.",
             verbose=True,
             allow_delegation=False,
-            tools=[self.jd_directory_tool, self.file_read_tool, self.pdf_tool, self.docx_tool],
+            tools=[self.jd_directory_tool, self.pdf_reader, self.docx_reader, self.pptx_reader],
             llm=self.llm
         )
     

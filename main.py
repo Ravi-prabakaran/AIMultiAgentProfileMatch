@@ -4,13 +4,15 @@ Uses CrewAI to coordinate multiple agents for intelligent profile matching.
 """
 
 import os
+import json
+import re
 from pathlib import Path
-from datetime import datetime
 
 from crewai import Crew, Process
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from dotenv import load_dotenv
+from tabulate import tabulate
 
 from agents import ProfileMatchAgents
 from tasks import ProfileMatchTasks
@@ -23,7 +25,6 @@ class ProfileMatchSystem:
         self,
         profiles_dir: str = "profiles",
         jd_dir: str = "job_descriptions",
-        output_dir: str = "outputs",
         api_key: str = None
     ):
         """
@@ -32,7 +33,6 @@ class ProfileMatchSystem:
         Args:
             profiles_dir: Directory containing candidate profiles
             jd_dir: Directory containing job descriptions
-            output_dir: Directory for output reports
             api_key: API key for LLM provider (optional if set in environment)
         """
         # Load environment variables
@@ -49,7 +49,7 @@ class ProfileMatchSystem:
             elif not os.getenv("ANTHROPIC_API_KEY"):
                 raise ValueError("Anthropic API key not found. Set ANTHROPIC_API_KEY in .env or pass api_key parameter.")
             
-            model = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022")
+            model = os.getenv("CLAUDE_MODEL", "claude-3-haiku-20240307")
             temperature = float(os.getenv("OPENAI_TEMPERATURE", "0.7"))
             
             self.llm = ChatAnthropic(
@@ -77,10 +77,6 @@ class ProfileMatchSystem:
         
         self.profiles_dir = profiles_dir
         self.jd_dir = jd_dir
-        self.output_dir = Path(output_dir)
-        
-        # Create output directory if it doesn't exist
-        self.output_dir.mkdir(exist_ok=True)
         
         # Ensure input directories exist
         Path(self.profiles_dir).mkdir(exist_ok=True)
@@ -100,14 +96,63 @@ class ProfileMatchSystem:
         print("✓ ProfileMatch system initialized")
         print(f"  📁 Profiles directory: {self.profiles_dir}")
         print(f"  📁 JD directory: {self.jd_dir}")
-        print(f"  📁 Output directory: {self.output_dir}")
     
-    def run_matching(self) -> str:
+    def display_matching_report(self, report_data: dict):
+        """
+        Display the matching report in a formatted table.
+        
+        Args:
+            report_data: Dictionary containing the matching report data
+        """
+        print("\n" + "="*80)
+        print("📊 PROFILE MATCHING REPORT")
+        print("="*80)
+        
+        # Display summary
+        summary = report_data.get("summary", {})
+        print(f"\n📅 Report Date: {summary.get('report_date', 'N/A')}")
+        print(f"\n📈 Summary:")
+        print(f"   • Total Candidates: {summary.get('total_candidates', 0)}")
+        print(f"   • Total Teams: {summary.get('total_teams', 0)}")
+        print(f"   • Candidates with Matches: {summary.get('candidates_with_matches', 0)}")
+        print(f"   • Candidates without Matches: {summary.get('candidates_without_matches', 0)}")
+        
+        # Prepare table data
+        matches = report_data.get("matches", [])
+        table_data = []
+        
+        for match in matches:
+            # Format matching teams
+            teams = match.get("matching_teams", [])
+            if teams:
+                teams_str = ", ".join([f"{t['team_name']} ({t['score']})" for t in teams])
+            else:
+                teams_str = "No suitable match found"
+            
+            # Get highest score
+            score = match.get("highest_score")
+            score_str = str(score) if score is not None else "N/A"
+            
+            table_data.append([
+                teams_str,
+                score_str,
+                match.get("candidate_name", "Unknown"),
+                match.get("phone", "Not Available"),
+                match.get("email", "Not Available"),
+                match.get("linkedin", "Not Available")
+            ])
+        
+        # Display table
+        headers = ["Matching Team(s)", "Score", "Candidate Name", "Phone Number", "Email", "LinkedIn Profile"]
+        print("\n" + tabulate(table_data, headers=headers, tablefmt="grid"))
+        print("\n" + "="*80)
+    
+    def run_matching(self) -> dict:
         """
         Execute the multi-agent matching process.
         
         Returns:
-            The final matching report as a string
+            The final matching report as a dictionary
         """
         print("\n" + "="*70)
         print("🚀 Starting ProfileMatch Multi-Agent System")
@@ -166,43 +211,50 @@ class ProfileMatchSystem:
         print("✅ Matching Complete!")
         print("="*70)
         
-        return result
-    
-    def save_report(self, report: str) -> str:
-        """
-        Save the matching report to a file.
-        
-        Args:
-            report: The report content to save
+        # Parse JSON from result
+        try:
+            # Try to extract JSON from the result
+            result_str = str(result)
             
-        Returns:
-            Path to the saved report file
-        """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_file = self.output_dir / f"matching_report_{timestamp}.txt"
-        
-        with open(report_file, 'w', encoding='utf-8') as f:
-            f.write(report)
-        
-        print(f"\n💾 Report saved to: {report_file}")
-        return str(report_file)
+            # Try to find JSON in the result (handle markdown code blocks)
+            json_match = re.search(r'```(?:json)?\s*({.*?})\s*```', result_str, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+            else:
+                # Try to find raw JSON
+                json_match = re.search(r'({\s*"summary".*})', result_str, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(1)
+                else:
+                    json_str = result_str
+            
+            report_data = json.loads(json_str)
+            return report_data
+            
+        except json.JSONDecodeError as e:
+            print(f"\n⚠️  Warning: Could not parse JSON from result. Error: {e}")
+            print("\nRaw result:")
+            print(result)
+            return {"summary": {}, "matches": [], "raw_result": str(result)}
     
-    def run(self) -> str:
+    def run(self) -> dict:
         """
-        Run the complete matching process and save the report.
+        Run the complete matching process and display the report.
         
         Returns:
-            Path to the saved report file
+            Dictionary containing the matching report data
         """
         try:
-            report = self.run_matching()
-            report_file = self.save_report(report)
+            report_data = self.run_matching()
+            
+            # Display the report as a table
+            self.display_matching_report(report_data)
             
             print("\n" + "="*70)
             print("🎉 ProfileMatch completed successfully!")
             print("="*70)
             
-            return report_file
+            return report_data
             
         except Exception as e:
             error_msg = f"Error during execution: {str(e)}"
@@ -215,15 +267,11 @@ def main():
     # You can customize these paths
     system = ProfileMatchSystem(
         profiles_dir="profiles",
-        jd_dir="job_descriptions",
-        output_dir="outputs"
+        jd_dir="job_descriptions"
     )
     
-    # Run the matching process
-    report_file = system.run()
-    
-    # Display the report location
-    print(f"\n📄 View your matching report at: {report_file}")
+    # Run the matching process and display table in console
+    report_data = system.run()
 
 
 if __name__ == "__main__":

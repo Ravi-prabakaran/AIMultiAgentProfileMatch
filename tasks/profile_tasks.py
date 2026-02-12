@@ -7,7 +7,7 @@ from typing import List
 
 
 class ProfileMatchTasks:
-    """Factory class for creating specialized tasks."""
+    """Tasks class for creating specialized tasks."""
     
     @staticmethod
     def parse_profiles_task(agent, profiles_dir: str = "profiles") -> Task:
@@ -22,7 +22,18 @@ class ProfileMatchTasks:
             description=f"""
             Read all candidate profile documents from the '{profiles_dir}' directory and extract structured information.
             
-            For each profile document you find, extract:
+            IMPORTANT - Use the correct tool for each file type:
+            - For PDF files (.pdf): Use "Read PDF Document" tool with the full file path
+            - For Word documents (.docx): Use "Read Word Document" tool with the full file path
+            - For PowerPoint files (.pptx): Use "Read PowerPoint Presentation" tool with the full file path
+            
+            Steps:
+            1. First, list all files in the directory
+            2. For each file, identify its extension
+            3. Use the appropriate reader tool with the full file path
+            4. Extract all relevant information from the content
+            
+            For each profile document, extract:
             1. Candidate Name
             2. Email Address
             3. Phone Number
@@ -32,11 +43,6 @@ class ProfileMatchTasks:
             7. Education and Certifications
             8. Current/Previous Role and Company
             9. Notable Achievements
-            
-            Use your tools to:
-            - List all files in the profiles directory
-            - Read each document (PDF, DOCX, PPTX)
-            - Extract the information systematically
             
             Organize the information in a clear, structured format for each candidate.
             If any information is not available, mark it as "Not Found".
@@ -58,28 +64,55 @@ class ProfileMatchTasks:
         return Task(
             description=f"""
             Read all job description documents from the '{jd_dir}' directory.
-            These documents may contain multiple team JDs in a single file.
             
-            Use your tools to:
-            - List all files in the job descriptions directory
-            - Read each document carefully
-            - Identify all teams/positions mentioned
+            CRITICAL INSTRUCTION - TEAM NAME EXTRACTION:
+            The TEAM NAME comes from the JOB DESCRIPTION FILENAME (NOT from candidate profile filenames).
+            You are working with files in the '{jd_dir}' directory ONLY for team name extraction.
             
-            For each team/position, extract:
-            1. Team Name
-            2. Job Title/Position
-            3. Required Skills (technical and soft skills)
-            4. Minimum Years of Experience
-            5. Educational Requirements
-            6. Key Responsibilities
-            7. Preferred Qualifications
-            8. Team Description
+            YOU MUST extract the team name from the ACTUAL JD FILENAME you are processing.
+            DO NOT use candidate profile filenames for team names.
+            DO NOT use example names like "Engineering_Team" or "Data_Science".
+            
+            Process for EACH job description file:
+            1. Look at the actual filename of the JD document in '{jd_dir}' directory
+            2. Remove the extension (.pdf, .docx, or .pptx)  
+            3. The remaining text IS the team name
+            4. Then read the document content to extract job requirements
+            
+            Examples (for illustration - use YOUR actual JD filenames from '{jd_dir}'):
+            - JD file: '{jd_dir}/CloudOps.pdf' → Team Name: "CloudOps"
+            - JD file: '{jd_dir}/Mobile_Development.docx' → Team Name: "Mobile_Development"
+            - JD file: '{jd_dir}/QA_Testing.pptx' → Team Name: "QA_Testing"
+            
+            Remember: Team names come from JOB DESCRIPTION filenames, NOT candidate filenames.
+            
+            IMPORTANT - Use the correct tool for each file type:
+            - For PDF files (.pdf): Use "Read PDF Document" tool with the full file path
+            - For Word documents (.docx): Use "Read Word Document" tool with the full file path
+            - For PowerPoint files (.pptx): Use "Read PowerPoint Presentation" tool with the full file path
+            
+            Steps:
+            1. First, list all files in the directory
+            2. For each file, extract the team name from the filename (remove extension)
+            3. Use the appropriate reader tool with the full file path to read the document content
+            4. Extract job requirements from the content
+            
+            For each file/team, extract:
+            1. Team Name (from filename - DO NOT look for this in document content)
+            2. Job Title/Position (from document content)
+            3. Required Skills (from document content - technical and soft skills)
+            4. Minimum Years of Experience (from document content)
+            5. Educational Requirements (from document content)
+            6. Key Responsibilities (from document content)
+            7. Preferred Qualifications (from document content)
+            8. Team/Role Description (from document content)
             
             Organize each team's requirements clearly and completely.
             """,
             agent=agent,
-            expected_output="A structured list of all teams with their complete job requirements, "
-                          "including team names, required skills, experience levels, and qualifications."
+            expected_output="A structured list of all teams with their complete job requirements. "
+                          "Each entry must include the team name (extracted from filename), required skills, "
+                          "experience levels, and qualifications (extracted from document content)."
         )
     
     @staticmethod
@@ -96,33 +129,38 @@ class ProfileMatchTasks:
             Based on the parsed candidate profiles and job descriptions:
             
             1. Analyze each candidate's skills, experience, and qualifications
-            2. Compare them against each team's requirements
+            2. Compare them against EVERY team's requirements
             3. Calculate a match score (0-100) for each candidate-team pairing
-            4. Identify the best matching team for each candidate
-            5. Provide detailed reasoning for each match including:
-               - Matching skills
+            4. A candidate can match with MULTIPLE teams - identify ALL teams where match score >= 60
+            5. For each candidate-team match, provide:
+               - Match score
+               - Key matching skills
                - Experience alignment
                - Areas of strong fit
-               - Potential gaps or concerns
             
-            Consider:
+            IMPORTANT: 
+            - Candidates can match with multiple teams simultaneously
+            - Include ALL teams with match score >= 60 (good match threshold)
+            - If no team scores >= 60, mark candidate as "No Match"
+            - Rank teams by match score for each candidate
+            
+            Scoring criteria:
             - Technical skill alignment (40% weight)
             - Experience level match (30% weight)
             - Educational qualifications (15% weight)
             - Overall profile fit (15% weight)
-            
-            Rank matches by score and provide top 3 team matches per candidate if applicable.
             """,
             agent=agent,
             context=context,
-            expected_output="A comprehensive matching analysis with each candidate matched to their best-fit "
-                          "team(s), including match scores, detailed reasoning, and ranked alternatives."
+            expected_output="A comprehensive matching analysis showing each candidate with ALL their matching "
+                          "teams (score >= 60), including match scores and reasoning. Candidates may have multiple "
+                          "team matches or no matches."
         )
     
     @staticmethod
     def generate_report_task(agent, context: List[Task]) -> Task:
         """
-        Task for generating the final matching report.
+        Task for generating the final matching report in JSON format.
         
         Args:
             agent: The report generator agent
@@ -130,31 +168,47 @@ class ProfileMatchTasks:
         """
         return Task(
             description="""
-            Generate a comprehensive matching report with the following structure:
+            Generate a matching report in VALID JSON FORMAT with the following structure:
             
-            For each candidate:
-            - Candidate Name
-            - Email Address
-            - Phone Number
-            - LinkedIn Profile Link
-            - Best Matched Team Name
-            - Match Score (0-100)
-            - Key Matching Skills
-            - Match Reasoning (2-3 sentences)
-            - Alternative Team Matches (if any, with scores)
+            {
+              "summary": {
+                "total_candidates": <number>,
+                "total_teams": <number>,
+                "candidates_with_matches": <number>,
+                "candidates_without_matches": <number>,
+                "report_date": "<date string>"
+              },
+              "matches": [
+                {
+                  "candidate_name": "<name>",
+                  "phone": "<phone or 'Not Available'>",
+                  "email": "<email or 'Not Available'>",
+                  "linkedin": "<linkedin URL or 'Not Available'>",
+                  "matching_teams": [
+                    {"team_name": "<team>", "score": <number>},
+                    {"team_name": "<team>", "score": <number>}
+                  ],
+                  "highest_score": <number or null>
+                }
+              ]
+            }
             
-            Format the report clearly with sections for each candidate.
-            Include a summary at the top with:
-            - Total candidates processed
-            - Total teams available
-            - Average match score
-            - Number of high-confidence matches (score >= 80)
-            
-            Ensure all contact information is accurate and properly formatted.
+            Requirements:
+            - Output ONLY valid JSON, no markdown formatting or extra text
+            - For matching_teams array:
+              * Include ALL teams with score >= 60
+              * Sort by score (descending)
+              * If no matches, use empty array []
+            - highest_score: The maximum score, or null if no matches
+            - Sort matches array:
+              1. Candidates with matches first (by highest_score descending)
+              2. Candidates without matches at the end
+            - Use "Not Available" for missing contact information
+            - Ensure all JSON is properly formatted and parseable
             """,
             agent=agent,
             context=context,
-            expected_output="A complete, well-formatted matching report with all candidate details, "
-                          "contact information, matched teams, scores, and detailed reasoning for each match. "
-                          "This should be ready to present to stakeholders."
+            expected_output="A valid JSON object containing summary statistics and an array of candidate matches "
+                          "with their contact information and matching teams. Must be parseable JSON without any "
+                          "markdown formatting or additional text."
         )

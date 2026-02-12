@@ -4,7 +4,7 @@ A CrewAI-based multi-agent system that intelligently matches candidate profiles 
 
 ## 🎯 Features
 
-- **Multi-Format Support**: Parse profiles from PDF, DOCX, and PPTX files using CrewAI's built-in tools
+- **Multi-Format Support**: Parse profiles from PDF, DOCX, and PPTX files using custom document reader tools
 - **Intelligent Agents**: AI-powered agents that autonomously read and process documents
 - **Comprehensive Extraction**: Extracts name, email, phone, LinkedIn, skills, and experience
 - **Team Matching**: Matches candidates to best-fit teams from JD documents
@@ -38,10 +38,10 @@ Choose your preferred AI provider:
 
 | Provider | Models | API Key Source |
 |----------|--------|----------------|
-| **Anthropic Claude** | claude-3-5-sonnet, claude-3-opus, claude-3-sonnet | https://console.anthropic.com/ |
+| **Anthropic Claude** | claude-3-haiku (verified), claude-3-sonnet, claude-3-opus | https://console.anthropic.com/ |
 | **OpenAI** | gpt-4-turbo, gpt-4, gpt-3.5-turbo | https://platform.openai.com/api-keys |
 
-**Recommended:** Claude 3.5 Sonnet for best performance on document analysis tasks.
+**Recommended:** Claude 3 Haiku (claude-3-haiku-20240307) - Fast, cost-effective, and verified working.
 
 ## 📋 Prerequisites
 
@@ -75,7 +75,7 @@ Choose your preferred AI provider:
    ```bash
    LLM_PROVIDER=claude
    ANTHROPIC_API_KEY=your_anthropic_api_key_here
-   CLAUDE_MODEL=claude-3-5-sonnet-20241022
+   CLAUDE_MODEL=claude-3-haiku-20240307
    ```
    
    **For OpenAI:**
@@ -153,7 +153,7 @@ Simply edit your `.env` file:
 ```bash
 LLM_PROVIDER=claude
 ANTHROPIC_API_KEY=your_key_here
-CLAUDE_MODEL=claude-3-5-sonnet-20241022  # or claude-3-opus-20240229
+CLAUDE_MODEL=claude-3-haiku-20240307  # Fast and cost-effective
 ```
 
 **Use OpenAI:**
@@ -206,7 +206,7 @@ Match scores range from 0-100, with:
 
 3. **"No profiles found"**
    - Ensure profiles are in the `profiles/` directory
-   - Check file formats (PDF, DOCX, PPTX, TXT supported)
+   - Check file formats (PDF, DOCX, PPTX supported)
 
 4. **Document parsing errors**
    - Ensure files are not corrupted
