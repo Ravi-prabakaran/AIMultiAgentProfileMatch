@@ -57,7 +57,7 @@ class ProfileMatchSystem:
                 temperature=temperature,
                 anthropic_api_key=os.getenv("ANTHROPIC_API_KEY")
             )
-            print(f"🤖 Using Claude: {model}")
+            print(f"Using Claude: {model}")
             
         else:  # Default to OpenAI
             # Configure OpenAI
@@ -73,7 +73,7 @@ class ProfileMatchSystem:
                 model=model,
                 temperature=temperature
             )
-            print(f"🤖 Using OpenAI: {model}")
+            print(f"Using OpenAI: {model}")
         
         self.profiles_dir = profiles_dir
         self.jd_dir = jd_dir
@@ -94,8 +94,8 @@ class ProfileMatchSystem:
         self.report_agent = agent_factory.report_generator_agent()
         
         print("✓ ProfileMatch system initialized")
-        print(f"  📁 Profiles directory: {self.profiles_dir}")
-        print(f"  📁 JD directory: {self.jd_dir}")
+        print(f"  Profiles directory: {self.profiles_dir}")
+        print(f"  JD directory: {self.jd_dir}")
     
     def display_matching_report(self, report_data: dict):
         """
@@ -105,13 +105,13 @@ class ProfileMatchSystem:
             report_data: Dictionary containing the matching report data
         """
         print("\n" + "="*80)
-        print("📊 PROFILE MATCHING REPORT")
+        print("PROFILE MATCHING REPORT")
         print("="*80)
         
         # Display summary
         summary = report_data.get("summary", {})
-        print(f"\n📅 Report Date: {summary.get('report_date', 'N/A')}")
-        print(f"\n📈 Summary:")
+        print(f"\nReport Date: {summary.get('report_date', 'N/A')}")
+        print(f"\nSummary:")
         print(f"   • Total Candidates: {summary.get('total_candidates', 0)}")
         print(f"   • Total Teams: {summary.get('total_teams', 0)}")
         print(f"   • Candidates with Matches: {summary.get('candidates_with_matches', 0)}")
@@ -155,11 +155,11 @@ class ProfileMatchSystem:
             The final matching report as a dictionary
         """
         print("\n" + "="*70)
-        print("🚀 Starting ProfileMatch Multi-Agent System")
+        print("Starting ProfileMatch Multi-Agent System")
         print("="*70)
         
         # Create tasks - agents will use their tools to read documents
-        print("\n📋 Creating tasks for agents...")
+        print("\nCreating tasks for agents...")
         task_factory = ProfileMatchTasks()
         
         profile_parse_task = task_factory.parse_profiles_task(
@@ -183,7 +183,7 @@ class ProfileMatchSystem:
         )
         
         # Create crew
-        print("👥 Assembling crew...")
+        print("Assembling crew...")
         crew = Crew(
             agents=[
                 self.profile_parser_agent,
@@ -202,13 +202,13 @@ class ProfileMatchSystem:
         )
         
         # Execute
-        print("\n🤖 Starting crew execution...")
+        print("\nStarting crew execution...")
         print("   Agents will read documents using their tools...")
         print("-"*70)
         result = crew.kickoff()
         
         print("\n" + "="*70)
-        print("✅ Matching Complete!")
+        print("Matching Complete!")
         print("="*70)
         
         # Parse JSON from result
@@ -232,7 +232,7 @@ class ProfileMatchSystem:
             return report_data
             
         except json.JSONDecodeError as e:
-            print(f"\n⚠️  Warning: Could not parse JSON from result. Error: {e}")
+            print(f"\nWarning: Could not parse JSON from result. Error: {e}")
             print("\nRaw result:")
             print(result)
             return {"summary": {}, "matches": [], "raw_result": str(result)}
@@ -251,14 +251,14 @@ class ProfileMatchSystem:
             self.display_matching_report(report_data)
             
             print("\n" + "="*70)
-            print("🎉 ProfileMatch completed successfully!")
+            print("ProfileMatch completed successfully!")
             print("="*70)
             
             return report_data
             
         except Exception as e:
             error_msg = f"Error during execution: {str(e)}"
-            print(f"\n❌ {error_msg}")
+            print(f"\n{error_msg}")
             raise
 
 
