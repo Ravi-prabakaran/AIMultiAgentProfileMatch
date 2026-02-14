@@ -2,7 +2,7 @@
 
 A CrewAI-based multi-agent system that intelligently matches candidate profiles with job descriptions across multiple teams.
 
-## 🎯 Features
+## Features
 
 - **Multi-Format Support**: Parse profiles and JDs from PDF, DOCX, and PPTX files
 - **Custom Document Readers**: Lightweight, reliable tools for reading documents without vector database dependencies
@@ -12,7 +12,7 @@ A CrewAI-based multi-agent system that intelligently matches candidate profiles 
 - **Table Display**: Results displayed in a clean, formatted table in the console
 - **Flexible LLM Support**: Works with OpenAI or Anthropic Claude
 
-## 🏗️ System Architecture
+## System Architecture
 
 The system uses **four specialized CrewAI agents**:
 
@@ -62,7 +62,7 @@ The system uses **four specialized CrewAI agents**:
 
 1. **Clone or navigate to the project directory**:
    ```powershell
-   cd C:\Users\C152766\source\AI\ProfileMatch
+   cd C:\ProfileMatch
    ```
 
 2. **Create a virtual environment** (recommended):
@@ -177,7 +177,7 @@ The matching report is displayed as a table in your console:
 - **Email**: Email address
 - **LinkedIn Profile**: LinkedIn URL
 
-## 🔧 Customization
+## Customization
 
 ### Switching LLM Providers
 
@@ -241,7 +241,7 @@ The system uses a weighted scoring algorithm for each candidate-team pair:
 - **40-59**: Moderate match (below threshold, not shown)
 - **0-39**: Poor match (below threshold, not shown)
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
